@@ -1,3 +1,4 @@
-# Security+ SY0-701 題庫網頁
 
-直接上傳至 GitHub，使用 Vercel 以 **Static Hosting** 部署即可。
+# SecurityPlus Web (Chinese explanations)
+
+打開 `index.html` 即可離線瀏覽全部 606 題。

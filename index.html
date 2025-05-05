@@ -1,89 +1,62 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<title>Security+ SY0-701 題庫</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CompTIA Security+ SY0-701 題庫瀏覽</title>
 <style>
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans","Helvetica Neue",Arial,sans-serif;font-size:20px;line-height:1.6;padding:24px;max-width:900px;margin:auto;}
-button{font-size:20px;padding:8px 16px;margin:4px;}
-mark{background:yellow;}
-#answer{color:#d32f2f;font-weight:bold;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","游ゴシック",YuGothic,"Hiragino Kaku Gothic Pro","Microsoft JhengHei",sans-serif;margin:0;padding:0 16px;line-height:1.6;font-size:20px;background:#fafafa;}
+h2{margin-top:32px;font-size:1.3em;border-bottom:1px solid #e0e0e0;padding-bottom:8px;}
+mark{background:#fff59d;}
+.answer-line, .explain-line{margin:4px 0;}
+.answer-line::before{content:"✅";margin-right:4px;}
+.explain-line::before{content:"📘";margin-right:4px;}
+.nav{display:flex;justify-content:space-between;margin:24px 0;}
+button{font-size:18px;padding:8px 16px;border:none;border-radius:4px;background:#1976d2;color:#fff;cursor:pointer;}
+button:disabled{background:#9e9e9e;cursor:default;}
+.bookmark{background:#ffb300;}
 </style>
 </head>
 <body>
-<h1>CompTIA Security+ (SY0-701) 題庫</h1>
-<p>共 <span id="total"></span> 題。可點「重點」標註題目，系統會記錄於瀏覽器。</p>
-<hr>
-<h2 id="qnum"></h2>
-<div id="question_en"></div>
-<div id="question_cn" style="color:#555;margin-bottom:16px;"></div>
-<div id="options"></div>
-<p><strong>✅ 正確答案：</strong> <span id="answer"></span></p>
-<p><strong>🔑 關鍵字：</strong> <span id="keywords"></span></p>
-<p><strong>📘 解題說明：</strong> <span id="explanation"></span></p>
-<div style="margin-top:24px;">
-  <button id="prev">上一題</button>
-  <button id="next">下一題</button>
-  <button id="bookmark">標註重點</button>
-  <button id="showbookmarks">查看重點</button>
+<div id="qbox"></div>
+<div class="nav">
+  <button id="prevBtn">上一題</button>
+  <button id="bookmarkBtn">標註重點</button>
+  <button id="nextBtn">下一題</button>
 </div>
 <script>
-let data=[], idx=0;
-let bookmarks=JSON.parse(localStorage.getItem('bookmarkIds')||'[]');
-const tCache={};
-function translate(text){
-  if(!text) return Promise.resolve('');
-  if(tCache[text]) return Promise.resolve(tCache[text]);
-  const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-TW&dt=t&q='+encodeURIComponent(text);
-  return fetch(url).then(r=>r.json()).then(arr=>{
-    const res=arr[0].map(x=>x[0]).join('');
-    tCache[text]=res;return res;
-  }).catch(()=> '');
+let questions=[];
+let idx=0;
+let bookmarks=JSON.parse(localStorage.getItem('bookmarks')||'[]');
+
+function render(){
+  const q=questions[idx];
+  const qbox=document.getElementById('qbox');
+  let html="";
+  html+=`<h2>Question #${q.id}</h2>`;
+  html+=`<p>${q.question_html}</p>`;
+  html+=q.options.map(o=>`<p>${o}</p>`).join("");
+  const answerCn=q.answer_cn?` /${q.answer_cn}`:"";
+  html+=`<p class="answer-line">正確答案： ${q.correct_letter}. ${q.correct_text}${answerCn}</p>`;
+  html+=`<p class="explain-line">解題說明： ${q.explanation_cn||''}</p>`;
+  qbox.innerHTML=html;
+  document.getElementById('prevBtn').disabled=idx===0;
+  document.getElementById('nextBtn').disabled=idx===questions.length-1;
+  document.getElementById('bookmarkBtn').textContent=bookmarks.includes(q.id)?"取消標註":"標註重點";
 }
-fetch('questions.json').then(r=>r.json()).then(j=>{
-  data=j;
-  document.getElementById('total').textContent=data.length;
-  load(0);
-});
-function load(i){
-  idx=i;
-  const q=data[i];
-  document.getElementById('qnum').textContent='Question #'+q.id;
-  document.getElementById('question_en').innerHTML=q.question_html;
-  translate(q.question).then(txt=>document.getElementById('question_cn').textContent=txt);
-  document.getElementById('options').innerHTML=q.options.map(o=>'<div>'+o+'</div>').join('');
-  translate(q.correct_text).then(ans_cn=>{
-    document.getElementById('answer').textContent=q.correct_letter+'. '+q.correct_text+' / '+ans_cn;
-  });
-  Promise.all(q.keywords.map(k=>translate(k))).then(arr=>{
-    const combined=q.keywords.map((k,i)=>k+'（'+arr[i]+'）').join('、');
-    document.getElementById('keywords').textContent=combined;
-  });
-  document.getElementById('explanation').textContent='待補充';
-  document.getElementById('prev').disabled=(idx===0);
-  document.getElementById('next').disabled=(idx===data.length-1);
-  updateBmBtn();
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-function updateBmBtn(){
-  const btn=document.getElementById('bookmark');
-  if(bookmarks.includes(data[idx].id)){btn.textContent='已標註';btn.style.background='#ffd54f';}
-  else{btn.textContent='標註重點';btn.style.background='';}
-}
-document.getElementById('prev').onclick=()=>load(idx-1);
-document.getElementById('next').onclick=()=>load(idx+1);
-document.getElementById('bookmark').onclick=()=>{
-  const id=data[idx].id;
+
+document.getElementById('prevBtn').onclick=()=>{if(idx>0){idx--;window.scrollTo(0,0);render();}};
+document.getElementById('nextBtn').onclick=()=>{if(idx<questions.length-1){idx++;window.scrollTo(0,0);render();}};
+document.getElementById('bookmarkBtn').onclick=()=>{
+  const id=questions[idx].id;
   const i=bookmarks.indexOf(id);
-  if(i>-1) bookmarks.splice(i,1);
-  else bookmarks.push(id);
-  localStorage.setItem('bookmarkIds',JSON.stringify(bookmarks));
-  updateBmBtn();
+  if(i>-1) bookmarks.splice(i,1); else bookmarks.push(id);
+  localStorage.setItem('bookmarks',JSON.stringify(bookmarks));
+  render();
 };
-document.getElementById('showbookmarks').onclick=()=>{
-  if(bookmarks.length===0) alert('尚未標註任何題目');
-  else alert('已標註題號：'+bookmarks.join(', '));
-};
+
+fetch('questions.json').then(r=>r.json()).then(j=>{questions=j;render();});
 </script>
 </body>
 </html>
